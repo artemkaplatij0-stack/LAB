@@ -543,27 +543,30 @@
       {
         id: 'hcl',
         label: '+ HCl (Хлоридна к-та)',
-        eq: 'C₂H₅OH + HCl →(H₂SO₄) C₂H₅Cl + H₂O',
+        eq: 'C₂H₅OH + HCl →(H₂SO₄) C₂H₅Cl↑ + H₂O',
         type: 'Розрив зв’язку C—O',
         typeColor: 'amber',
         stageHtml: `
           <div class="th-stage-scene">
             <div class="th-vessel">
-              <div class="th-liquid" style="background: linear-gradient(180deg, rgba(251,191,36,0.3), rgba(217,119,6,0.6));">
-                <div style="position:absolute; bottom:8px; left:25px; width:34px; height:18px; border-radius:50%; background:rgba(254,240,138,0.7); box-shadow:0 0 10px rgba(234,179,8,0.8);"></div>
+              <div class="th-liquid">
+                <span class="th-bubble" style="left:22%; width:7px; height:7px; animation-delay:0s"></span>
+                <span class="th-bubble" style="left:48%; width:9px; height:9px; animation-delay:0.25s"></span>
+                <span class="th-bubble" style="left:72%; width:6px; height:6px; animation-delay:0.5s"></span>
+                <span class="th-bubble" style="left:36%; width:8px; height:8px; animation-delay:0.75s"></span>
               </div>
             </div>
           </div>
           <div class="th-obs-badge mt-2">
-            <span>🧪 Розчин каламутніє: утворюється важка крапля C₂H₅Cl</span>
+            <span>💨 Утворюється хлороетан (C₂H₅Cl↑) — безбарвний газ із характерним запахом, який виділяється з реакційної суміші</span>
           </div>
         `,
         products: [
           {
-            name: 'Хлороетан (C₂H₅Cl)',
+            name: 'Хлороетан (C₂H₅Cl↑)',
             badge: 'Галогенопохідне',
             color: 'amber',
-            desc: 'Летка рідина (t кип. +12.3 °C), нерозчинна у воді.'
+            desc: 'Безбарвний газ із характерним запахом, який виділяється з реакційної суміші.'
           },
           {
             name: 'Вода (H₂O)',
@@ -758,9 +761,27 @@
         typeColor: 'orange',
         stageHtml: `
           <div class="th-stage-scene">
+            <div class="th-cuo-status-tag tag-black">1. Чорний CuO</div>
+            <div class="th-cuo-status-tag tag-copper">2. Червона Cu ✨</div>
+
+            <div class="th-cuo-wire-wrap">
+              <svg class="th-cuo-svg" viewBox="0 0 60 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="th-wire-stem" d="M30 2 L30 48" stroke="#71717a" stroke-width="3.5" stroke-linecap="round"/>
+                <path class="th-wire-coil" d="M30 48 C44 48, 44 60, 30 60 C16 60, 16 72, 30 72 C44 72, 44 84, 30 84 C16 84, 16 96, 30 96 C42 96, 42 106, 30 108" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path class="th-wire-shine" d="M30 48 C44 48, 44 60, 30 60 C16 60, 16 72, 30 72 C44 72, 44 84, 30 84 C16 84, 16 96, 30 96 C42 96, 42 106, 30 108" stroke-width="2" stroke-linecap="round" stroke-dasharray="6 10"/>
+              </svg>
+              <span class="th-cu-sparkle s1">✦</span>
+              <span class="th-cu-sparkle s2">✧</span>
+              <span class="th-cu-sparkle s3">✦</span>
+            </div>
+
             <div class="th-vessel">
-              <div class="th-liquid"></div>
-              <div class="th-wire-spiral reduced"></div>
+              <div class="th-liquid">
+                <div class="th-cuo-reaction-glow"></div>
+                <span class="th-bubble" style="left:28%; width:5px; height:5px; animation-delay:0.2s"></span>
+                <span class="th-bubble" style="left:64%; width:6px; height:6px; animation-delay:0.6s"></span>
+                <span class="th-bubble" style="left:46%; width:5px; height:5px; animation-delay:0.9s"></span>
+              </div>
             </div>
           </div>
           <div class="th-obs-badge mt-2">
