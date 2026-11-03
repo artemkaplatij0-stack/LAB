@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="uk" class="scroll-smooth dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ORGANIC.LAB // Органічна хімія: Спирти</title>
+  
+  <!-- Favicon (Test Tube) -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="alternate icon" type="image/svg+xml" href="favicon.svg">
+  
+  <!-- Google Fonts: Inter, Roboto Mono & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['Roboto Mono', 'JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              cyan: '#06b6d4',
+              teal: '#14b8a6',
+              dark: '#061320',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-[#050508] text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-cyan-500 selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- 1. INTRO OVERLAY (#intro-overlay)                                         -->
+  <!-- ========================================================================= -->
+  <section id="intro-overlay" class="fixed inset-0 z-50 flex flex-col justify-between items-center bg-[#050508] p-4 sm:p-6 overflow-hidden select-none">
+    
+    <!-- Canvas for particle background effect -->
+    <canvas id="particle-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-0"></canvas>
+
+    <!-- Skip button: icon only -->
+    <button id="skip-intro-btn" aria-label="Пропустити інтро" title="Пропустити" style="position:absolute;top:1.25rem;right:1.25rem;z-index:30;width:44px;height:44px;padding:0;border-radius:9999px;display:flex;align-items:center;justify-content:center;gap:0;">
+      <i data-lucide="skip-forward" class="w-5 h-5"></i>
+    </button>
+
+    <!-- Full-screen free assembly field: atoms float chaotically, user links them -->
+    <div id="formula-grid">
+      <svg id="formula-bonds-svg" class="absolute inset-0 w-full h-full pointer-events-none z-0" style="overflow: visible;">
+        <g id="bonds-group"></g>
+      </svg>
+      <div id="assembly-container" class="absolute inset-0 pointer-events-none z-10"></div>
+    </div>
+
+    <!-- Transition: ball-and-stick morph + hyperjump -->
+    <div id="transition-container" class="hidden fixed inset-0 z-50 bg-[#030306] overflow-hidden" style="transition: opacity .5s;">
+      <div id="morph-stage" class="absolute inset-0 z-20 pointer-events-none">
+        <canvas id="morph-canvas" class="w-full h-full"></canvas>
+      </div>
+      <canvas id="warp-canvas" class="absolute inset-0 w-full h-full pointer-events-none z-10"></canvas>
+      <div id="warp-lines" class="hidden"></div>
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- 2. MAIN CONTENT (#main-content) - initially hidden                         -->
+  <!-- ========================================================================= -->
+  <div id="main-content" class="hidden min-h-screen bg-[#061320] text-slate-100 flex flex-col lab-grid-bg">
+
+    <!-- FIXED HEADER -->
+    <header id="main-header" class="fixed top-0 inset-x-0 z-50 w-full border-b border-cyan-500/20 bg-[#061320]/90 backdrop-blur-xl transition-all site-header">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-center md:grid md:grid-cols-[1fr_auto_1fr] md:gap-3 lg:gap-6">
+        
+        <!-- Desktop Left Navigation (3 links) -->
+        <nav class="hidden md:flex items-center justify-end space-x-1 lg:space-x-2" aria-label="Головна навігація (ліва)">
+          <a href="#hero-section" data-section="hero-section" class="nav-link active px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-semibold text-teal-300 transition-all">
+            <span>Головна</span>
+          </a>
+          <a href="#th-1" data-section="th-1" class="nav-link px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-medium text-slate-300 hover:text-teal-300 transition-all">
+            <span>Класифікація</span>
+          </a>
+          <a href="#th-3" data-section="th-3" class="nav-link px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-medium text-slate-300 hover:text-teal-300 transition-all">
+            <span>Молекули</span>
+          </a>
+        </nav>
+
+        <!-- Centered Logo (Click to scroll to top) -->
+        <a href="#hero-section" id="header-logo" class="flex items-center justify-center gap-3 group flex-shrink-0 cursor-pointer text-center" title="Повернутися на початок">
+          <div class="p-2 sm:p-2.5 rounded-xl bg-teal-500/15 border border-teal-400/40 text-teal-300 group-hover:border-teal-300 group-hover:shadow-[0_0_18px_rgba(20,184,166,0.45)] transition-all logo-icon-box flex-shrink-0">
+            <i data-lucide="flask-conical" class="w-5 h-5 sm:w-6 sm:h-6"></i>
+          </div>
+          <div class="flex flex-col items-start leading-tight">
+            <span class="text-white font-extrabold tracking-tight text-base sm:text-lg logo-title">ORGANIC<span class="text-teal-400">.LAB</span></span>
+            <span class="text-[10px] sm:text-[11px] font-medium text-slate-400 tracking-wide logo-subtitle">Хімія. Просто. Цікаво.</span>
+          </div>
+        </a>
+
+        <!-- Desktop Right Navigation (3 links) -->
+        <nav class="hidden md:flex items-center justify-start space-x-1 lg:space-x-2" aria-label="Головна навігація (права)">
+          <a href="#th-4" data-section="th-4" class="nav-link px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-medium text-slate-300 hover:text-teal-300 transition-all">
+            <span>Властивості</span>
+          </a>
+          <a href="#detective-game-section" data-section="detective-game-section" class="nav-link px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-semibold text-amber-300 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all flex items-center gap-1.5">
+            <i data-lucide="search" class="w-3.5 h-3.5"></i>
+            <span>Детектив</span>
+          </a>
+          <a href="#th-quiz" data-section="th-quiz" class="nav-link px-2.5 lg:px-3 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-medium text-slate-300 hover:text-teal-300 transition-all">
+            <span>Тест</span>
+          </a>
+        </nav>
+
+      </div>
+    </header>
+
+    <!-- MAIN BODY SECTIONS -->
+    <main class="flex-grow">
+
+      <!-- ===================================================================== -->
+      <!-- HERO SECTION                                                          -->
+      <!-- ===================================================================== -->
+      <section id="hero-section" class="relative pt-8 pb-8 sm:pt-12 sm:pb-12 px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center justify-center overflow-hidden">
+        
+        <!-- Glowing background radial gradient -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-cyan-500/10 rounded-full blur-3xl pointer-events-none -z-10"></div>
+        
+        <!-- Category Pill -->
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-800/50 text-cyan-300 text-xs sm:text-sm font-mono uppercase tracking-wider mb-6 backdrop-blur hero-badge">
+          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+          <span>Оксигеновмісні органічні сполуки</span>
+        </div>
+
+        <!-- Big Title -->
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white mb-6 max-w-4xl hero-title">
+          Органічна хімія: <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-300 to-emerald-400">Спирти</span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="max-w-3xl text-base sm:text-lg md:text-xl text-slate-300 font-light leading-relaxed mb-8 hero-desc">
+          Інтерактивне дослідження просторової будови, класифікації, ізомерії, фізичних і хімічних властивостей спиртів. Відкрийте молекулярний світ через фундаментальну теорію, візуалізацію та віртуальні експерименти.
+        </p>
+
+        <!-- Scroll Indicator -->
+        <div class="flex flex-col items-center gap-2 text-slate-500 text-xs tracking-widest uppercase animate-bounce pointer-events-none">
+          <span>Гортайте для вивчення</span>
+          <i data-lucide="chevron-down" class="w-4 h-4 text-cyan-400"></i>
+        </div>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- COMPREHENSIVE THEORY SECTION (#theory-section)                        -->
+      <!-- ===================================================================== -->
+                  <section id="theory-section" class="scroll-mt-20 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full space-y-8">
+
+        <!-- Header -->
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-800/80 pb-6">
+          <div class="flex items-start gap-3.5">
+            <div class="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+              <i data-lucide="book-open" class="w-7 h-7"></i>
+            </div>
+            <div>
+              <div class="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-1">Інтерактивна теорія</div>
+              <h2 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white">Оксигеновмісні сполуки: Спирти</h2>
+              <p class="text-sm text-slate-400 mt-1">Коротко й наочно: натискай, досліджуй та перевіряй себе.</p>
+            </div>
+          </div>
+          <div class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-300 self-start md:self-auto">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Загальна формула: <button type="button" class="chem-tooltip-trigger font-bold text-teal-300 underline decoration-dotted underline-offset-4" data-chem-tooltip="roh">R—OH</button> або <button type="button" class="chem-tooltip-trigger font-bold text-cyan-300 underline decoration-dotted underline-offset-4" data-chem-tooltip="homologous">CₙH₂ₙ₊₁OH</button></span>
+          </div>
+        </div>
+
+        <!-- ============ 0. ОРГАНІЧНІ РЕЧОВИНИ ============ -->
+        <div id="th-intro" class="th-card scroll-mt-24">
+          <div class="th-kicker"><i data-lucide="atom" class="w-4 h-4"></i><span>Органічні сполуки</span></div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="space-y-3">
+              <h3 class="th-h3">Органічна хімія — хімія сполук Карбону</h3>
+              <p class="th-p">Органічні речовини — це природні та синтетичні сполуки на основі Карбону.</p>
+              <div class="text-xs text-slate-400 font-mono uppercase">Елементи-органогени</div>
+              <div class="flex flex-wrap gap-2 notranslate" translate="no">
+                <span class="th-chip"><b class="text-slate-100">C</b></span>
+                <span class="th-chip"><b class="text-sky-200">H</b></span>
+                <span class="th-chip"><b class="text-rose-400">O</b></span>
+                <span class="th-chip"><b class="text-blue-300">N</b></span>
+                <span class="th-chip"><b class="text-yellow-300">S</b></span>
+                <span class="th-chip"><b class="text-orange-300">P</b></span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-center text-xs">
+                <div class="th-mini !p-2.5"><b class="text-cyan-300 block">Вуглеводні</b><span class="text-slate-400">лише C і H</span></div>
+                <div class="th-mini !p-2.5"><b class="text-emerald-300 block">Оксигеновмісні</b><span class="text-slate-400">C, H + O</span></div>
+                <div class="th-mini !p-2.5"><b class="text-blue-300 block">Нітрогеновмісні</b><span class="text-slate-400">містять N</span></div>
+              </div>
+            </div>
+            <!-- Widget: group sorter -->
+            <div class="th-widget" id="w-sorter" data-progress="sorter">
+              <div class="th-widget-title"><i data-lucide="shuffle" class="w-4 h-4"></i> До якої групи належить речовина?</div>
+              <div class="th-big-formula notranslate" translate="no" data-role="formula">CH₄</div>
+              <div class="text-center text-sm text-slate-400 mb-3" data-role="name">метан</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button class="th-opt" data-answer="h">Вуглеводні</button>
+                <button class="th-opt" data-answer="o">Оксигеновмісні</button>
+                <button class="th-opt" data-answer="n">Нітрогеновмісні</button>
+              </div>
+              <div class="th-feedback" data-role="feedback">Обери правильну групу</div>
+              <div class="flex justify-between items-center text-xs font-mono text-slate-500 mt-2"><span data-role="counter">1 / 8</span><span data-role="score">Рахунок: 0</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 1. ЩО ТАКЕ СПИРТ ============ -->
+        <div id="th-1" class="th-card scroll-mt-24 space-y-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div class="th-kicker"><i data-lucide="flask-conical" class="w-4 h-4"></i><span>Будова та класифікація</span></div>
+              <h3 class="th-h3">Спирт = радикал R + гідроксильна група <button type="button" class="chem-tooltip-trigger text-rose-400 font-mono underline decoration-dotted underline-offset-4" data-chem-tooltip="oh">—OH</button></h3>
+              <div class="th-eq mt-3 max-w-xl">R—H &nbsp;→&nbsp; <button type="button" class="chem-tooltip-trigger text-teal-300 font-bold" data-chem-tooltip="roh">R—OH</button> &nbsp;·&nbsp; <button type="button" class="chem-tooltip-trigger text-cyan-300 font-bold" data-chem-tooltip="homologous">CₙH₂ₙ₊₁OH</button> &nbsp;·&nbsp; суфікс <button type="button" class="chem-tooltip-trigger text-emerald-300 font-bold" data-chem-tooltip="ol">-ол</button></div>
+            </div>
+            <!-- Interactive Functional Group Quick-Compare Pills -->
+            <div class="flex flex-wrap items-center gap-1.5 bg-slate-950/70 p-2.5 rounded-2xl border border-teal-500/25">
+              <span class="text-[11px] font-mono text-slate-400 px-1.5">Групи:</span>
+              <button type="button" class="chem-fg-pill active" data-chem-tooltip="oh">—OH (Спирти)</button>
+              <button type="button" class="chem-fg-pill" data-chem-tooltip="cho">—CHO (Альдегіди)</button>
+              <button type="button" class="chem-fg-pill" data-chem-tooltip="cooh">—COOH (Кислоти)</button>
+              <button type="button" class="chem-fg-pill" data-chem-tooltip="sh">—SH (Тіоли)</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Widget: hybridization -->
+            <div class="th-widget" id="w-hybrid" data-progress="hybrid">
+              <div class="th-widget-title"><i data-lucide="git-commit" class="w-4 h-4"></i> До якого Карбону приєднана група —OH?</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+                <button class="th-btn" data-key="sp3">sp³</button>
+                <button class="th-btn" data-key="arom">sp² (бензен)</button>
+                <button class="th-btn" data-key="enol">sp² (C=C)</button>
+                <button class="th-btn" data-key="sp">sp (C≡C)</button>
+              </div>
+              <div class="th-result" data-role="out"><span class="text-slate-500 text-sm">Натисни на тип гібридизації</span></div>
+            </div>
+
+            <!-- Widget: classify primary/secondary/tertiary -->
+            <div class="th-widget" id="w-classify" data-progress="classify">
+              <div class="th-widget-title"><i data-lucide="target" class="w-4 h-4"></i> Визнач тип спирту за положенням —OH</div>
+              <div class="th-big-formula !text-xl sm:!text-2xl" data-role="formula"></div>
+              <div class="text-center text-xs text-slate-500 mb-3" data-role="hint">Порахуй сусідні атоми C біля C—OH</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button class="th-opt" data-answer="1">Первинний</button>
+                <button class="th-opt" data-answer="2">Вторинний</button>
+                <button class="th-opt" data-answer="3">Третинний</button>
+              </div>
+              <div class="th-feedback" data-role="feedback">1 сусід → первинний · 2 → вторинний · 3 → третинний</div>
+            </div>
+          </div>
+
+          <!-- Classification tabs (used by app.js) -->
+          <div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+              <div class="th-h4 text-white">Класифікація спиртів</div>
+              <div class="tabs-nav inline-flex flex-wrap p-1 rounded-xl bg-slate-950/80 border border-slate-800 gap-1" role="tablist">
+                <button class="tab-btn active px-3 py-1.5 rounded-lg text-xs font-semibold transition-all" data-tab="tab-groups">Кількість —OH</button>
+                <button class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200" data-tab="tab-carbon">Положення —OH</button>
+                <button class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-400 hover:text-slate-200" data-tab="tab-radicals">Будова радикала</button>
+              </div>
+            </div>
+            <div id="tab-groups" data-tab-content="tab-groups" class="tab-panel tab-content active">
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                <div class="th-mini"><b class="text-cyan-300 text-sm">Одноатомні (1 —OH)</b><div class="font-mono text-xs text-slate-300 mt-1">C₂H₅OH</div></div>
+                <div class="th-mini"><b class="text-teal-300 text-sm">Двоатомні (2 —OH)</b><div class="font-mono text-xs text-slate-300 mt-1">HO–CH₂–CH₂–OH</div></div>
+                <div class="th-mini"><b class="text-emerald-300 text-sm">Триатомні (3 —OH)</b><div class="font-mono text-xs text-slate-300 mt-1">гліцерол C₃H₈O₃</div></div>
+                <div class="th-mini"><b class="text-green-300 text-sm">Поліатомні</b><div class="text-xs text-slate-300 mt-1">4 і більше —OH</div></div>
+              </div>
+            </div>
+            <div id="tab-carbon" data-tab-content="tab-carbon" class="tab-panel tab-content hidden">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="th-mini"><b class="text-blue-300 text-sm">Первинні</b><div class="font-mono text-xs text-slate-300 mt-1">CH₃–CH₂–CH₂–OH</div></div>
+                <div class="th-mini"><b class="text-indigo-300 text-sm">Вторинні</b><div class="font-mono text-xs text-slate-300 mt-1">CH₃–CH(OH)–CH₃</div></div>
+                <div class="th-mini"><b class="text-violet-300 text-sm">Третинні</b><div class="font-mono text-xs text-slate-300 mt-1">(CH₃)₃C–OH</div></div>
+              </div>
+            </div>
+            <div id="tab-radicals" data-tab-content="tab-radicals" class="tab-panel tab-content hidden">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="th-mini"><b class="text-emerald-300 text-sm">Насичені</b><div class="font-mono text-xs text-slate-300 mt-1">CH₃OH, C₆H₁₁OH</div></div>
+                <div class="th-mini"><b class="text-amber-300 text-sm">Ненасичені</b><div class="font-mono text-xs text-slate-300 mt-1">HC≡C–CH₂–OH</div></div>
+                <div class="th-mini"><b class="text-purple-300 text-sm">Ароматичні</b><div class="font-mono text-xs text-slate-300 mt-1">C₆H₅–CH₂–CH₂–OH</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 2. НОМЕНКЛАТУРА ТА ІЗОМЕРІЯ ============ -->
+        <div id="th-2" class="th-card scroll-mt-24 space-y-6">
+          <div>
+            <div class="th-kicker"><i data-lucide="tag" class="w-4 h-4"></i><span>Номенклатура та ізомерія</span></div>
+            <h3 class="th-h3">Назви спиртів та види ізомерії</h3>
+            <p class="th-p mt-1">Назва = алкан + номер атома C + суфікс <b>-ол</b>. Ізомери мають однаковий склад, але різну будову й властивості.</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- WIDGET 1: LEGO НАЗВА СПИРТУ -->
+            <div class="th-widget" id="w-names" data-progress="names">
+              <div class="th-widget-title"><i data-lucide="layers" class="w-4 h-4"></i> Конструктор назв спиртів</div>
+              
+              <!-- Step 1: Count carbons -->
+              <div class="th-lego-step mb-3">
+                <div class="text-xs font-mono uppercase tracking-wider text-cyan-300 font-bold mb-2 flex items-center">
+                  <span class="th-lego-badge">1</span> Кількість атомів Карбону:
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" data-role="c-count">
+                  <button class="th-btn" data-c="1">1 C (метан)</button>
+                  <button class="th-btn active" data-c="2">2 C (етан)</button>
+                  <button class="th-btn" data-c="3">3 C (пропан)</button>
+                  <button class="th-btn" data-c="4">4 C (бутан)</button>
+                </div>
+              </div>
+
+              <!-- Step 2: Position of OH -->
+              <div class="th-lego-step mb-3">
+                <div class="text-xs font-mono uppercase tracking-wider text-emerald-300 font-bold mb-2 flex items-center">
+                  <span class="th-lego-badge !bg-emerald-600">2</span> Положення групи —OH:
+                </div>
+                <div class="grid grid-cols-2 gap-2" data-role="pos">
+                  <button class="th-btn active" data-pos="1">Біля 1-го C</button>
+                  <button class="th-btn" data-pos="2">Біля 2-го C</button>
+                </div>
+              </div>
+
+              <!-- Dynamic Result Display -->
+              <div class="th-result p-4 space-y-3" data-role="out">
+                <!-- generated dynamically by theory.js -->
+              </div>
+            </div>
+
+            <!-- WIDGET 2: LEGO ІЗОМЕРІЯ -->
+            <div class="th-widget" id="w-isomers" data-progress="isomers">
+              <div class="th-widget-title"><i data-lucide="git-branch" class="w-4 h-4"></i> Ізомери складу C₃H₈O</div>
+              <p class="text-xs text-slate-300 leading-relaxed mb-3">
+                Формула <b class="text-white font-mono">C₃H₈O</b> відповідає трьом різним речовинам:
+              </p>
+
+              <!-- 3 Switcher Buttons -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3" data-role="buttons">
+                <!-- generated dynamically by theory.js -->
+              </div>
+
+              <!-- Detailed Output -->
+              <div class="th-result p-4" data-role="out">
+                <!-- generated dynamically by theory.js -->
+              </div>
+
+              <!-- Two Key Takeaways -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-3">
+                <div class="th-mini !p-2.5">
+                  <b class="text-cyan-300 text-xs block mb-1">🧩 Структурна</b>
+                  <span class="text-xs text-slate-300 leading-relaxed">Різна будова ланцюга, положення —OH або міжкласова (спирти ↔ етери).</span>
+                </div>
+                <div class="th-mini !p-2.5">
+                  <b class="text-purple-300 text-xs block mb-1">🪞 Оптична (дзеркальна)</b>
+                  <span class="text-xs text-slate-300 leading-relaxed">Молекули співвідносяться як ліва і права долоня.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="th-3" class="th-card scroll-mt-24 space-y-6">
+          <div>
+            <div class="th-kicker"><i data-lucide="droplets" class="w-4 h-4"></i><span>Молекулярний конструктор та фізичні властивості</span></div>
+            <h3 class="th-h3">3D будова молекул та водневий зв'язок</h3>
+            <p class="th-p mt-1">Полярна група <button type="button" class="chem-tooltip-trigger font-mono text-rose-300 underline decoration-dotted underline-offset-4" data-chem-tooltip="hbond">O<sup>δ−</sup>—H<sup>δ+</sup></button> утворює водневі зв'язки (<button type="button" class="chem-tooltip-trigger font-mono text-cyan-300 underline decoration-dotted underline-offset-4" data-chem-tooltip="hbond">…O—H⋯O—H…</button>), що зумовлює високу t° кипіння і добру розчинність спиртів у воді.</p>
+          </div>
+
+          <!-- Top Grid: Left = 3D Molecule Constructor, Right = Temperature Simulator -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            <!-- LEFT COLUMN: Molecule viewer (#molecule-viewer) with molecule tabs & model switcher -->
+            <div class="lg:col-span-6 flex flex-col p-5 sm:p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-2xl justify-between mol-constructor-card">
+              <div>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse"></span>
+                    <h3 id="mol-viewer-title" class="font-bold text-slate-100 text-sm sm:text-base tracking-wide">Молекулярний конструктор: Етанол (C₂H₅OH)</h3>
+                  </div>
+                  <div class="inline-flex items-center gap-1 p-1 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <button type="button" data-mol-mode="ball" class="mol-mode-btn active px-2.5 py-1 rounded-lg text-[11px] font-mono font-semibold bg-teal-500/20 text-teal-300 border border-teal-500/40 transition">
+                      Кулестержнева
+                    </button>
+                    <button type="button" data-mol-mode="space" class="mol-mode-btn px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium text-slate-400 hover:text-slate-200 border border-transparent transition">
+                      Масштабна
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Molecule Selector Pills (Метанол / Етанол / Етиленгліколь / Гліцерол) -->
+                <div class="flex flex-wrap items-center gap-1.5 mb-3" role="tablist" aria-label="Вибір молекули спирту">
+                  <span class="text-xs font-mono text-slate-400 mr-1">Молекула:</span>
+                  <button type="button" data-mol-select="methanol" class="mol-select-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-950/70 text-slate-300 border border-slate-800 hover:border-teal-500/50 transition">
+                    Метанол
+                  </button>
+                  <button type="button" data-mol-select="ethanol" class="mol-select-btn active px-3 py-1.5 rounded-xl text-xs font-semibold bg-teal-500 text-slate-950 border border-teal-400 shadow-[0_0_15px_rgba(20,184,166,0.35)] transition">
+                    Етанол
+                  </button>
+                  <button type="button" data-mol-select="glycol" class="mol-select-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-950/70 text-slate-300 border border-slate-800 hover:border-teal-500/50 transition">
+                    Етиленгліколь
+                  </button>
+                  <button type="button" data-mol-select="glycerol" class="mol-select-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-950/70 text-slate-300 border border-slate-800 hover:border-teal-500/50 transition">
+                    Гліцерол
+                  </button>
+                </div>
+              </div>
+
+              <!-- Molecule Viewer Container -->
+              <div id="molecule-viewer" class="relative w-full aspect-[5/4] flex items-center justify-center bg-slate-950/90 rounded-xl overflow-hidden border border-slate-800/80 shadow-inner group">
+                <canvas id="molecule-canvas" width="500" height="400" class="w-full h-full cursor-grab active:cursor-grabbing block"></canvas>
+                
+                <!-- Color & Atom Count Legend Overlay -->
+                <div class="absolute bottom-3 left-3 flex flex-wrap items-center gap-2.5 bg-slate-900/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-200 pointer-events-none mol-legend-overlay">
+                  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-slate-600 border border-slate-400 inline-block"></span> <b id="mol-count-c">C: 2</b></span>
+                  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-white border border-slate-300 inline-block"></span> <b id="mol-count-h">H: 6</b></span>
+                  <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500 border border-rose-300 inline-block"></span> <b id="mol-count-o">O: 1</b></span>
+                </div>
+
+                <!-- Hovered Atom Info Pill -->
+                <div id="mol-hover-badge" class="absolute top-3 left-3 text-[11px] font-mono text-teal-300 bg-slate-900/90 px-2.5 py-1 rounded-lg border border-teal-500/30 pointer-events-none">
+                  Наведіть на атом для підсвічування
+                </div>
+
+                <!-- Interactive Drag Hint -->
+                <div class="absolute top-3 right-3 text-[11px] font-mono text-slate-400 bg-slate-900/80 px-2.5 py-1 rounded-lg border border-slate-800 pointer-events-none hidden sm:flex items-center gap-1.5">
+                  <i data-lucide="move" class="w-3 h-3 text-teal-400"></i> Обертайте мишкою
+                </div>
+              </div>
+
+              <!-- Controls Panel -->
+              <div class="w-full flex flex-wrap items-center justify-between gap-2.5 mt-4 pt-3 border-t border-slate-800">
+                <div class="flex items-center gap-1.5">
+                  <button id="rotate-left-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition" title="Обертати ліворуч">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                  </button>
+                  <button id="rotate-right-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition" title="Обертати праворуч">
+                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                  </button>
+                  <button id="auto-rotate-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 border border-cyan-800/50 text-xs font-semibold transition" title="Автоматичне обертання">
+                    <i data-lucide="play" class="w-3.5 h-3.5"></i> <span>Авто-обертання</span>
+                  </button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button id="toggle-labels-btn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 text-xs font-medium transition" title="Показати/приховати підписи">
+                    <i data-lucide="tag" class="w-3.5 h-3.5"></i> <span>Підписи</span>
+                  </button>
+                  <button id="reset-view-btn" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/60 transition" title="Скинути ракурс">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Temperature simulator -->
+            <div class="lg:col-span-6 flex flex-col p-6 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md shadow-2xl justify-between">
+              <div>
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-3 pb-3 border-b border-slate-800">
+                  <div class="flex items-center gap-2 text-amber-400 font-bold text-sm sm:text-base">
+                    <i data-lucide="thermometer" class="w-5 h-5"></i>
+                    <span>Вплив водневих зв'язків на t° кипіння</span>
+                  </div>
+                  <span class="text-xs sm:text-sm font-mono text-cyan-300 font-bold bg-cyan-950/80 px-3 py-1 rounded-lg border border-cyan-700/60 shadow-sm" id="temp-current-val">Поточна: +78 °C</span>
+                </div>
+
+                <p class="text-xs sm:text-sm text-slate-300 mb-4 leading-relaxed">
+                  Завдяки <strong class="text-white font-semibold">водневим зв'язкам</strong> спирти киплять значно вище за відповідні алкани. Рухай повзунок:
+                </p>
+
+                <!-- Visual Thermometer & Interactive Slider -->
+                <div class="thermometer-container flex items-center gap-4 bg-slate-950/80 p-4 rounded-xl border border-slate-800/90 shadow-inner mb-4">
+                  <div class="relative w-5 h-28 bg-slate-800 rounded-full overflow-hidden border border-slate-700 flex-shrink-0 shadow-inner">
+                    <div id="thermometer-fill" class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-500 via-amber-500 to-rose-500 rounded-b-full transition-all duration-150" style="height: 80%;"></div>
+                  </div>
+                  <div class="flex-grow space-y-2.5">
+                    <div class="flex justify-between text-xs font-mono text-slate-400">
+                      <span class="text-blue-400 font-bold">-50°C</span>
+                      <span class="text-emerald-400 font-bold">Кімнатна: +20°C</span>
+                      <span class="text-amber-400 font-bold">Кипіння: +78.4°C</span>
+                      <span class="text-rose-400 font-bold">+110°C</span>
+                    </div>
+                    <input type="range" id="temp-slider" min="-50" max="110" value="78" class="w-full accent-amber-400 cursor-pointer h-2.5 bg-slate-800 rounded-lg">
+                    <div class="text-xs sm:text-sm text-slate-300 flex flex-wrap items-center justify-between gap-2 font-mono bg-slate-900/90 p-2.5 rounded-lg border border-slate-800">
+                      <span>Агрегатний стан етанолу:</span>
+                      <span id="temp-state" class="text-rose-400 font-bold text-sm">💨 Газ / пара (КИПІННЯ!)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dynamic Educational Comparison Note -->
+              <div id="temp-comparison-note" class="text-xs sm:text-sm text-slate-300 p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 leading-relaxed">
+                <!-- dynamic note from theory.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- FULL-WIDTH: Палітра ароматів (дві акуратні лінії по 6 штук!) -->
+          <div class="th-widget" id="w-smells" data-progress="smells">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-2 border-b border-slate-800/70">
+              <div class="th-widget-title !mb-0 text-base sm:text-lg"><i data-lucide="wind" class="w-5 h-5 text-cyan-400"></i> Палітра ароматів: вгадай запах за формулою</div>
+              <span class="text-xs font-mono text-cyan-300 bg-cyan-950/80 px-3 py-1 rounded-full border border-cyan-800/60 font-semibold">12 зразків • Натискай для перевороту ↻</span>
+            </div>
+            <!-- Grid with exactly 6 columns on md/lg screens! -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3" data-role="grid"></div>
+          </div>
+        </div>
+
+        <div id="th-4" class="th-card scroll-mt-24 space-y-6">
+          <div>
+            <div class="th-kicker"><i data-lucide="flame" class="w-4 h-4"></i><span>Хімічні властивості</span></div>
+            <h3 class="th-h3">Типові реакції спиртів</h3>
+            <p class="th-p mt-1">Водні розчини спиртів нейтральні (індикатори колір не змінюють). Реакції проходять за участю зв'язків <b>O—H</b>, <b>C—O</b> або через <b>окиснення</b>:</p>
+          </div>
+
+          <!-- Interactive Reaction Lab (Full Width Visual Stage) -->
+          <div class="th-widget" id="w-reactions" data-progress="reactions">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <div class="th-widget-title !mb-0 text-base"><i data-lucide="flask-conical" class="w-5 h-5 text-cyan-400"></i> Реакційна лабораторія: C₂H₅OH + ?</div>
+              <span class="text-xs font-mono text-cyan-300 bg-cyan-950/70 px-3 py-1 rounded-full border border-cyan-800/60 font-semibold">Обери реагент</span>
+            </div>
+
+            <!-- Reagent buttons -->
+            <div class="flex flex-wrap gap-2 mb-5" data-role="buttons"></div>
+
+            <!-- Visual Stage & Products Details -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch" data-role="stage-container">
+              <!-- Visual Animated Stage -->
+              <div class="lg:col-span-5 th-lab-stage p-5 flex flex-col justify-between" data-role="visual-stage">
+                <!-- dynamically rendered by theory.js -->
+              </div>
+
+              <!-- Product Details and Equation -->
+              <div class="lg:col-span-7 th-result !min-h-[280px] p-4 flex flex-col justify-between" data-role="out">
+                <!-- dynamically rendered by theory.js -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom: Oxidation across primary / secondary / tertiary classes -->
+          <div class="th-widget" id="w-oxidation" data-progress="oxidation">
+            <div class="th-widget-title"><i data-lucide="zap" class="w-4 h-4"></i> Продукти окиснення залежно від класу спирту</div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+              <button class="th-btn active" data-key="1">Первинний</button>
+              <button class="th-btn" data-key="2">Вторинний</button>
+              <button class="th-btn" data-key="3">Третинний</button>
+            </div>
+            <div class="th-result" data-role="out"><span class="text-slate-400 text-sm">Обери клас спирту (окисники: CuO, KMnO₄, K₂Cr₂O₇)</span></div>
+          </div>
+        </div>
+
+        <div id="th-5" class="th-card scroll-mt-24 space-y-5">
+          <div>
+            <div class="th-kicker"><i data-lucide="factory" class="w-4 h-4"></i><span>Способи одержання</span></div>
+            <h3 class="th-h3">Промислові та лабораторні методи добування</h3>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Widget: methods -->
+            <div class="th-widget" id="w-methods" data-progress="methods">
+              <div class="th-widget-title"><i data-lucide="route" class="w-4 h-4"></i> 5 основних способів</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3" data-role="buttons"></div>
+              <div class="th-result" data-role="out"></div>
+            </div>
+            <!-- Widget: Grignard -->
+            <div class="th-widget" id="w-grignard" data-progress="grignard">
+              <div class="th-widget-title"><i data-lucide="puzzle" class="w-4 h-4"></i> Синтез Гріньяра: RMgX + ?</div>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
+                <button class="th-btn" data-key="f">Формальдегід</button>
+                <button class="th-btn" data-key="a">Інший альдегід</button>
+                <button class="th-btn" data-key="k">Кетон / естер</button>
+              </div>
+              <div class="th-result" data-role="out"><span class="text-slate-500 text-sm">RMgX + C=O → приєднання → гідроліз до спирту</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ============ 6. ПРЕДСТАВНИКИ ============ -->
+        <div id="th-6" class="th-card scroll-mt-24 space-y-5">
+          <div>
+            <div class="th-kicker"><i data-lucide="star" class="w-4 h-4"></i><span>Представники спиртів</span></div>
+            <h3 class="th-h3">Найважливіші представники (натисни на картку)</h3>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3" id="w-cards" data-progress="cards"></div>
+          <div class="th-def text-sm">💡 <b class="text-white">Висновок:</b> будова визначає властивості — кожна нова група —OH підвищує t° кипіння, в'язкість і солодкий смак.</div>
+        </div>
+
+        <!-- ============ QUIZ ============ -->
+        <div id="th-quiz" class="th-card scroll-mt-24">
+          <div class="th-kicker !text-amber-300"><i data-lucide="check-circle" class="w-4 h-4"></i><span>Перевір себе</span></div>
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-4">
+              <h3 class="th-h3">Експрес-тест</h3>
+              <p class="th-p mt-2">8 коротких запитань для закріплення теми.</p>
+            </div>
+            <div class="lg:col-span-8 th-widget" id="w-quiz">
+              <div class="flex justify-between text-xs font-mono text-slate-500 mb-2"><span data-role="counter"></span><span data-role="score"></span></div>
+              <div class="text-base sm:text-lg font-semibold text-white mb-3" data-role="question"></div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" data-role="options"></div>
+              <div class="th-feedback" data-role="feedback"></div>
+              <div class="flex justify-end mt-3"><button class="th-btn th-btn-primary hidden" data-role="next">Далі →</button></div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+<!-- ===================================================================== -->
+      <!-- CHEMICAL DETECTIVE GAME SECTION (#detective-game-section)              -->
+      <!-- ===================================================================== -->
+      <section id="detective-game-section" class="scroll-mt-20 py-14 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
+        <div class="detective-board relative rounded-3xl border border-amber-500/30 bg-[#06080f]/95 shadow-[0_0_60px_rgba(245,158,11,0.08)] overflow-hidden p-5 sm:p-8 lg:p-10">
+
+          <!-- Ambient noir chemical background grid & glow -->
+          <div class="detective-ambient-grid pointer-events-none"></div>
+
+          <!-- Top Case File Header -->
+          <div class="relative z-10 flex items-center gap-4 pb-6 mb-8 border-b border-amber-500/20">
+            <div class="p-3.5 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-400 shadow-[0_0_25px_rgba(245,158,11,0.25)]">
+              <i data-lucide="fingerprint" class="w-8 h-8"></i>
+            </div>
+            <div>
+              <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
+                ХІМІЧНИЙ ДЕТЕКТИВ: <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-cyan-300">СПРАВА ПРО СПИРТИ</span>
+              </h2>
+            </div>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- LEVEL 1: СПРАВА ПРО ПЛУТАНИНУ В ПРОБІРКАХ (FLASHLIGHT MODE)        -->
+          <!-- ================================================================= -->
+          <div id="detective-level-1" class="detective-level-panel relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 items-center">
+              <div class="lg:col-span-8 space-y-2">
+                <div class="inline-flex items-center gap-2 text-amber-400 font-mono text-xs uppercase tracking-widest">
+                  <i data-lucide="flashlight" class="w-4 h-4"></i>
+                  <span>Рівень 1 // Нічний огляд лабораторії</span>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-extrabold text-white">
+                  Справа №101: «Плутанина в пробірках»
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                  У шкільній лабораторії згасло світло, а на штативі стоять <strong class="text-amber-300">10 пробірок із формулами</strong>. Дев'ять із них містять справжні спирти, але хтось підставив <strong class="text-rose-400">одну зайву речовину</strong> іншого класу! Наводьте <strong class="text-cyan-300">УФ-ліхтарик курсором</strong>, досліджуйте склад і натисніть на пробірку-самозванця.
+                </p>
+              </div>
+              <div class="lg:col-span-4 flex flex-wrap lg:justify-end gap-2.5">
+                <button type="button" id="toggle-flashlight-btn" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-300 text-xs font-mono font-semibold flex items-center gap-2 transition">
+                  <i data-lucide="sun" class="w-4 h-4"></i>
+                  <span id="flashlight-btn-text">Увімкнути світло в залі</span>
+                </button>
+                <button type="button" id="shuffle-tubes-btn" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-cyan-300 text-xs font-mono font-semibold flex items-center gap-2 transition">
+                  <i data-lucide="shuffle" class="w-4 h-4"></i>
+                  <span>Нова комбінація</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Dark Investigation Field with Cursor Flashlight -->
+            <div id="flashlight-arena" class="flashlight-arena relative rounded-2xl border border-slate-800 bg-[#030408] p-5 sm:p-8 overflow-hidden select-none">
+              <div class="flashlight-hint-banner pointer-events-none">
+                <i data-lucide="mouse-pointer" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>Водіть ліхтариком по темному полю, щоб освітити пробірки та знайти зайву формулу</span>
+              </div>
+
+              <!-- 10 Test Tubes Grid -->
+              <div id="detective-tubes-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 sm:gap-5 relative z-10 pt-4">
+                <!-- Populated by JS -->
+              </div>
+
+              <!-- Darkness Mask Overlay controlled by CSS vars --fx, --fy -->
+              <div id="flashlight-overlay" class="flashlight-overlay pointer-events-none"></div>
+            </div>
+
+            <!-- Detective Feedback Dossier Box -->
+            <div id="detective-lvl1-feedback" class="mt-5 p-5 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+              <div class="flex items-start gap-3.5">
+                <div id="lvl1-status-icon" class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex-shrink-0 mt-0.5">
+                  <i data-lucide="search" class="w-5 h-5"></i>
+                </div>
+                <div>
+                  <div id="lvl1-feedback-title" class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold mb-1">
+                    Журнал детектива: очікування експертизи
+                  </div>
+                  <p id="lvl1-feedback-text" class="text-sm text-slate-300 leading-relaxed">
+                    Оберіть підозрілу пробірку. Пам'ятайте: усі спирти містять функціональну гідроксильну групу <span class="font-mono text-cyan-300 font-bold">—OH</span>, сполучену з вуглеводневим радикалом.
+                  </p>
+                </div>
+              </div>
+              <button type="button" id="to-level-2-btn" class="hidden flex-shrink-0 px-5 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/25 flex items-center gap-2 transition">
+                <span>Наступна справа (Рівень 2)</span>
+                <i data-lucide="arrow-right" class="w-4 h-4"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- LEVEL 2: КОНСТРУКТОР МОЛЕКУЛ — ЗБЕРИ ГЛІЦЕРОЛ (ГЛІЦЕРИН)           -->
+          <!-- ================================================================= -->
+          <div id="detective-level-2" class="detective-level-panel relative z-10 mt-12 pt-10 border-t border-amber-500/20 scroll-mt-24">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6 items-start">
+              <div class="lg:col-span-8 space-y-2">
+                <div class="inline-flex items-center gap-2 text-cyan-400 font-mono text-xs uppercase tracking-widest">
+                  <i data-lucide="atom" class="w-4 h-4"></i>
+                  <span>Рівень 2 // Молекулярна реконструкція</span>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-extrabold text-white">
+                  Справа №102: «Конструктор молекул — Таємниця Гліцеролу»
+                </h3>
+                <p class="text-sm text-slate-300 leading-relaxed">
+                  На місці події виявлено густу, безбарвну, солодкувату на смак рідину, що добре розчиняється у воді й використовується в косметиці та медицині. Це найпростіший <strong class="text-emerald-300">трьохатомний спирт — гліцерол (гліцерин, пропан-1,2,3-тріол)</strong>. Зберіть його структурну формулу з окремих фрагментів: <strong class="text-cyan-300">3 атоми Карбону (C)</strong>, <strong class="text-purple-300">5 атомів Гідрогену (H)</strong> та <strong class="text-emerald-300">3 гідроксильні групи (—OH)</strong>!
+                </p>
+              </div>
+              <div class="lg:col-span-4 flex flex-wrap lg:justify-end gap-2.5">
+                <button type="button" id="glycerol-check-btn" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 text-xs sm:text-sm font-mono font-extrabold shadow-lg shadow-cyan-500/25 flex items-center gap-2 transition">
+                  <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                  <span>Перевірити</span>
+                </button>
+                <button type="button" id="glycerol-hint-btn" class="px-4 py-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-mono font-semibold flex items-center gap-2 transition">
+                  <i data-lucide="lightbulb" class="w-4 h-4"></i>
+                  <span>Підказка</span>
+                </button>
+                <button type="button" id="glycerol-reset-btn" class="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono font-semibold flex items-center gap-2 transition">
+                  <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                  <span>Очистити</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Glycerol Blueprint & Tray -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+              <!-- Left: Fragments Inventory -->
+              <div class="lg:col-span-4 p-5 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between space-y-5">
+                <div>
+                  <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-mono uppercase tracking-wider text-slate-400">Речові докази (Фрагменти)</span>
+                    <span id="glycerol-progress-badge" class="text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">0 / 11 встановлено</span>
+                  </div>
+                  <p class="text-xs text-slate-400 mb-4">
+                    Перетягуйте фрагменти мишкою (або пальцем) на робоче поле справа та з’єднуйте їх між собою у молекулу гліцеролу:
+                  </p>
+
+                  <!-- Fragment Selector Buttons -->
+                  <div id="glycerol-palette" class="space-y-3">
+                    <button type="button" data-frag-type="C" draggable="true" class="glycerol-frag-btn active w-full p-3.5 rounded-xl border border-cyan-500/50 bg-cyan-950/40 hover:bg-cyan-900/50 flex items-center justify-between transition">
+                      <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-cyan-500/20 border-2 border-cyan-400 text-cyan-300 font-black font-mono flex items-center justify-center text-lg shadow-[0_0_12px_rgba(6,182,212,0.4)]">C</span>
+                        <div class="text-left">
+                          <div class="text-sm font-bold text-white">Атом Карбону (C)</div>
+                          <div class="text-[11px] text-cyan-300/80 font-mono">Валентність IV • Каркас ланцюга</div>
+                        </div>
+                      </div>
+                      <span id="remain-C" class="px-2.5 py-1 rounded-lg bg-slate-900 font-mono text-xs text-cyan-300 border border-cyan-500/30">×3</span>
+                    </button>
+
+                    <button type="button" data-frag-type="OH" draggable="true" class="glycerol-frag-btn w-full p-3.5 rounded-xl border border-emerald-500/40 bg-emerald-950/30 hover:bg-emerald-900/40 flex items-center justify-between transition">
+                      <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-emerald-500/20 border-2 border-emerald-400 text-emerald-300 font-black font-mono flex items-center justify-center text-sm shadow-[0_0_12px_rgba(16,185,129,0.4)]">OH</span>
+                        <div class="text-left">
+                          <div class="text-sm font-bold text-white">Гідроксильна група (—OH)</div>
+                          <div class="text-[11px] text-emerald-300/80 font-mono">Функціональна група спиртів</div>
+                        </div>
+                      </div>
+                      <span id="remain-OH" class="px-2.5 py-1 rounded-lg bg-slate-900 font-mono text-xs text-emerald-300 border border-emerald-500/30">×3</span>
+                    </button>
+
+                    <button type="button" data-frag-type="H" draggable="true" class="glycerol-frag-btn w-full p-3.5 rounded-xl border border-purple-500/40 bg-purple-950/30 hover:bg-purple-900/40 flex items-center justify-between transition">
+                      <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-purple-500/20 border-2 border-purple-400 text-purple-300 font-black font-mono flex items-center justify-center text-lg shadow-[0_0_12px_rgba(168,85,247,0.4)]">H</span>
+                        <div class="text-left">
+                          <div class="text-sm font-bold text-white">Атом Гідрогену (H)</div>
+                          <div class="text-[11px] text-purple-300/80 font-mono">Валентність I • Вуглеводневий залишок</div>
+                        </div>
+                      </div>
+                      <span id="remain-H" class="px-2.5 py-1 rounded-lg bg-slate-900 font-mono text-xs text-purple-300 border border-purple-500/30">×5</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Quick Auto-Fill / Verify Info -->
+                <div id="glycerol-status-msg" class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                  <strong class="text-amber-300">Як будувати:</strong> перетягуйте атоми <span class="text-cyan-300 font-mono">C</span>, <span class="text-purple-300 font-mono">H</span> та групи <span class="text-emerald-300 font-mono">—OH</span> на вільне поле справа. Підводьте їх близько одне до одного, щоб утворилися хімічні зв’язки!
+                </div>
+              </div>
+
+              <!-- Right: Interactive Glycerol Structural Blueprint -->
+              <div class="lg:col-span-8 p-5 sm:p-7 rounded-2xl bg-[#040711] border border-slate-800 relative flex flex-col items-center justify-center min-h-[380px] overflow-x-auto">
+                <div class="text-xs font-mono uppercase tracking-widest text-slate-400 mb-4 text-center">
+                  Криміналістичний стіл реконструкції: <span class="text-cyan-300 font-bold">Пропан-1,2,3-тріол (Гліцерол)</span>
+                </div>
+
+                <!-- Freeform Drag & Drop Workspace (No Slot Hints) -->
+                <div id="glycerol-blueprint" class="glycerol-freeform-area relative w-full h-[340px] sm:h-[370px] rounded-xl bg-slate-950/70 border border-slate-800/80 overflow-hidden select-none">
+                  <svg id="glycerol-bonds-svg" class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                    <g id="glycerol-bonds-group"></g>
+                  </svg>
+                  <div id="glycerol-atoms-layer" class="absolute inset-0 w-full h-full z-10"></div>
+                </div>
+
+                <!-- Live / Checked Structural Formula Output Bar -->
+                <div id="glycerol-formula-readout" class="mt-4 w-full p-4 rounded-xl bg-slate-950/90 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <div class="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                      Складена структурна формула на столі:
+                    </div>
+                    <div id="glycerol-built-formula" class="text-base sm:text-lg font-mono font-extrabold text-cyan-300 mt-0.5">
+                      Поле порожнє — перетягніть фрагменти та натисніть «Перевірити»
+                    </div>
+                    <div id="glycerol-built-comment" class="text-xs text-slate-400 mt-0.5">
+                      Ви можете з’єднувати атоми C, H та групи —OH у будь-якому розташуванні на полі.
+                    </div>
+                  </div>
+                  <button type="button" id="glycerol-check-bottom-btn" class="flex-shrink-0 px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-mono font-extrabold text-xs sm:text-sm shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition">
+                    <i data-lucide="scan-line" class="w-4 h-4"></i>
+                    <span>Перевірити структуру</span>
+                  </button>
+                </div>
+
+                <!-- Animated Formula Reveal Overlay when Glycerol is completed -->
+                <div id="glycerol-success-overlay" class="hidden mt-5 w-full p-5 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-teal-950/90 to-cyan-950/90 border border-emerald-400/60 shadow-[0_0_35px_rgba(16,185,129,0.25)] animate-slide-up">
+                  <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                      <div class="w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-2xl font-black text-emerald-300 shadow-inner">
+                        ✓
+                      </div>
+                      <div>
+                        <div class="text-xs font-mono uppercase tracking-widest text-emerald-300 font-bold">
+                          Молекулу успішно реконструйовано!
+                        </div>
+                        <div class="text-xl sm:text-2xl font-mono font-black text-white mt-0.5">
+                          CH₂(OH)—CH(OH)—CH₂(OH) <span class="text-emerald-300 text-base">або C₃H₅(OH)₃</span>
+                        </div>
+                        <p class="text-xs text-slate-200 mt-1">
+                          Гліцерол — трьохатомний спирт. Завдяки трьом групам —OH він утворює густу сітку водневих зв'язків, тому є в'язким і гігроскопічним.
+                        </p>
+                      </div>
+                    </div>
+                    <button type="button" id="to-level-3-btn" class="flex-shrink-0 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-300 hover:to-orange-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/30 flex items-center gap-2 transition">
+                      <span>До Рівня 3: Пастка токсиколога</span>
+                      <i data-lucide="skull" class="w-4 h-4"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- LEVEL 3: ПАСТКА ТОКСИКОЛОГА: ОБІЙДИ ФАЛЬСИФІКАТ                   -->
+          <!-- ================================================================= -->
+          <div id="detective-level-3" class="detective-level-panel relative z-10 mt-12 pt-10 border-t border-amber-500/20 scroll-mt-24">
+            
+            <!-- Level Header & Story Briefing -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+              <div class="space-y-2 max-w-3xl">
+                <div class="inline-flex items-center gap-2 text-rose-400 font-mono text-xs uppercase tracking-widest font-bold">
+                  <i data-lucide="skull" class="w-4 h-4"></i>
+                  <span>Рівень 3 (ФІНАЛ) // Токсикологічна експертиза</span>
+                </div>
+                <h3 class="text-xl sm:text-2xl font-extrabold text-white">
+                  «Пастка токсиколога: Обійди фальсифікат»
+                </h3>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 font-mono text-xs font-semibold">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-rose-400"></i>
+                  <span>Тема: Порівняння властивостей та дії на організм метанолу й етанолу</span>
+                </div>
+                <p class="text-sm text-slate-300 leading-relaxed mt-2">
+                  Криміналістичний експерт вилучив з незаконного підпільного складу дві пляшки з прозорими рідинами та однаковим алкогольним запахом. На одній із них наліпка пошкоджена: видно лише <span class="font-mono text-amber-300 font-bold">...OH</span>. Один із цих спиртів — їдкий смертельно отруйний <strong class="text-rose-400">метанол (CH₃OH)</strong>, інший — <strong class="text-cyan-300">етанол (C₂H₅OH)</strong>.
+                  <br>
+                  <span class="text-amber-200/90 font-medium">⚠️ Мета: Проведіть лабораторні тести (полум'я та мідний дріт), викрийте отруйний фальсифікат і наклейте на нього попереджувальний знак <strong>«Обережно, отрута!»</strong>.</span>
+                </p>
+              </div>
+
+              <!-- Theory Toggle Button -->
+              <div class="flex-shrink-0 flex flex-wrap gap-2">
+                <button type="button" id="toxic-theory-toggle-btn" class="px-5 py-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/50 text-amber-300 font-mono text-xs sm:text-sm font-bold flex items-center gap-2.5 shadow-[0_0_20px_rgba(245,158,11,0.15)] transition">
+                  <i data-lucide="book-open" class="w-4 h-4"></i>
+                  <span>Довідник токсиколога</span>
+                </button>
+                <button type="button" id="toxic-reset-samples-btn" class="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono font-semibold flex items-center gap-2 transition" title="Отримати нову партію зразків">
+                  <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                  <span>Нова партія</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Collapsible Theory Dossier -->
+            <div id="toxic-theory-drawer" class="hidden mb-6 p-5 sm:p-6 rounded-2xl bg-slate-950/95 border border-amber-500/40 backdrop-blur-md space-y-4">
+              <div class="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                <div class="flex items-center gap-2 text-amber-300 font-mono text-xs uppercase tracking-widest font-bold">
+                  <i data-lucide="shield-alert" class="w-4 h-4 text-rose-400"></i>
+                  <span>Криміналістичний довідник: Метанол vs Етанол</span>
+                </div>
+                <span class="text-xs font-mono text-amber-400/80">Токсикологія • 10 клас</span>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Card 1: Methanol -->
+                <div class="p-4 rounded-xl bg-rose-950/30 border border-rose-500/40 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-rose-300 font-mono">1. Метанол (CH₃OH) — СМЕРТЕЛЬНА ОТРУТА</span>
+                    <span class="px-2 py-0.5 rounded bg-rose-900/60 text-[10px] font-mono text-rose-200 border border-rose-600">Деревний спирт</span>
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    <strong class="text-rose-400">Дія на організм:</strong> Смертельна доза — лише <strong>25–30 мл</strong>! В організмі фермент алкогольдегідрогеназа окиснює його до надзвичайно токсичного <strong>мурашиного альдегіду (формальдегіду HCHO)</strong> та мурашиної кислоти, які вражають сітківку й зоровий нерв (<strong>сліпота від 5–10 мл</strong>), блокують клітинне дихання та призводять до смерті.
+                  </p>
+                  <div class="p-2.5 rounded-lg bg-slate-950 border border-rose-900/50 text-xs space-y-1">
+                    <div class="text-amber-300 font-semibold">🔍 Як відрізнити в лабораторії:</div>
+                    <div class="text-slate-300">🔥 <strong>Тест полум'ям:</strong> пари метанолу горять із характерним <u>злегка зеленкуватим</u> відтінком.</div>
+                    <div class="text-slate-300">🧪 <strong>Проба з розжареним дротом (CuO):</strong> окиснюється до формальдегіду з <u>різким, задушливим, сльозогінним запахом</u> (запах формаліну / анатомічного препарату).</div>
+                  </div>
+                </div>
+
+                <!-- Card 2: Ethanol -->
+                <div class="p-4 rounded-xl bg-cyan-950/30 border border-cyan-500/40 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-cyan-300 font-mono">2. Етанол (C₂H₅OH) — Медичний спирт</span>
+                    <span class="px-2 py-0.5 rounded bg-cyan-900/60 text-[10px] font-mono text-cyan-200 border border-cyan-600">Винний спирт</span>
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    <strong class="text-cyan-400">Дія на організм:</strong> Психоактивна наркотична речовина з токсичною дією при зловживанні, проте значно менш токсична за метанол. <strong>Є антидотом при отруєнні метанолом</strong>: фермент зв'язується з етанолом у 4–5 разів швидше, не дозволяючи метанолу перетворитися на смертельний формальдегід!
+                  </p>
+                  <div class="p-2.5 rounded-lg bg-slate-950 border border-cyan-900/50 text-xs space-y-1">
+                    <div class="text-cyan-300 font-semibold">🔍 Як відрізнити в лабораторії:</div>
+                    <div class="text-slate-300">🔥 <strong>Тест полум'ям:</strong> горить рівномірним чистим <u>світло-синім / блакитним</u> полум'ям.</div>
+                    <div class="text-slate-300">🧪 <strong>Проба з розжареним дротом (CuO):</strong> окиснюється до ацетальдегіду з <u>приємним запахом свіжих зелених яблук</u>.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Forensic Workbench: Sample A & Sample B -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              
+              <!-- Sample A Card -->
+              <div id="toxic-card-A" class="toxic-sample-card p-6 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+                <!-- Sticker Slot on Sample A -->
+                <div id="sticker-slot-A" class="sticker-slot absolute top-4 right-4 z-20 pointer-events-none"></div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-mono font-bold text-cyan-400 text-lg">
+                        А
+                      </div>
+                      <div>
+                        <div class="text-xs font-mono uppercase tracking-wider text-slate-400">Речовий доказ № 104-A</div>
+                        <div class="text-base font-bold text-white">Пляшка «Зразок А»</div>
+                      </div>
+                    </div>
+                    <span id="badge-status-A" class="px-2.5 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-800 font-mono text-[11px]">
+                      Не досліджено ⚪
+                    </span>
+                  </div>
+
+                  <!-- Visual Bottle & Animated Stage -->
+                  <div class="relative w-full h-44 rounded-xl bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-800/80 flex items-center justify-center overflow-hidden mb-4 group shadow-inner">
+                    <!-- Bottle Illustration -->
+                    <div id="bottle-graphic-A" class="relative flex flex-col items-center transition-transform duration-300">
+                      <!-- Bottle Neck -->
+                      <div class="w-8 h-8 rounded-t-md bg-slate-800/80 border-t border-x border-slate-600 relative">
+                        <div class="absolute top-0 inset-x-0 h-2 bg-amber-700/80 rounded-t-sm"></div>
+                      </div>
+                      <!-- Bottle Body -->
+                      <div class="w-24 h-28 rounded-b-2xl bg-gradient-to-b from-slate-800/60 via-cyan-950/30 to-cyan-900/40 border border-slate-700/80 backdrop-blur-sm relative flex flex-col justify-end p-2 shadow-lg">
+                        <!-- Liquid Level -->
+                        <div class="w-full h-16 rounded-b-xl bg-gradient-to-t from-cyan-400/25 to-transparent relative">
+                          <div class="absolute inset-x-0 top-0 h-1 bg-cyan-300/40 rounded-full animate-pulse"></div>
+                        </div>
+                        <!-- Torn Label -->
+                        <div class="absolute top-6 inset-x-2 py-1 px-1.5 rounded bg-amber-100/90 text-slate-950 font-mono text-[10px] font-bold text-center shadow border-dashed border border-amber-900/40">
+                          <span class="text-slate-400">...</span>OH
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Flame Visual Stage (hidden initially) -->
+                    <div id="flame-stage-A" class="hidden absolute top-3 inset-x-0 flex flex-col items-center z-10 animate-fade-in pointer-events-none">
+                      <div id="flame-fx-A" class="w-12 h-20 rounded-full"></div>
+                      <div id="flame-label-A" class="mt-1 px-3 py-0.5 rounded-full bg-slate-950/90 border font-mono text-xs font-bold shadow-lg"></div>
+                    </div>
+
+                    <!-- Hot Copper Wire Stage (hidden initially) -->
+                    <div id="wire-stage-A" class="hidden absolute inset-0 flex flex-col items-center justify-center z-10 animate-fade-in pointer-events-none p-3 text-center">
+                      <div id="wire-fx-A" class="w-1.5 h-16 rounded-full bg-gradient-to-b from-orange-500 via-rose-500 to-amber-300 shadow-[0_0_15px_#f97316] animate-bounce"></div>
+                      <div id="wire-smoke-A" class="text-2xl mt-1">💨</div>
+                      <div id="wire-odor-A" class="mt-1 px-3 py-1 rounded-xl bg-slate-950/95 border font-mono text-xs font-bold max-w-[90%] shadow-xl"></div>
+                    </div>
+                  </div>
+
+                  <!-- Findings Log for Sample A -->
+                  <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1.5 font-mono mb-4">
+                    <div class="flex items-center justify-between text-slate-300">
+                      <span>Колір полум'я:</span>
+                      <strong id="log-flame-A" class="text-slate-500">Не перевірено</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-300">
+                      <span>Запах з гарячою міддю (CuO):</span>
+                      <strong id="log-odor-A" class="text-slate-500">Не перевірено</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons for Sample A -->
+                <div class="grid grid-cols-2 gap-2.5">
+                  <button type="button" id="btn-flame-A" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                    <span>Тест полум'ям</span>
+                  </button>
+                  <button type="button" id="btn-wire-A" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-rose-500/40 text-rose-300 hover:text-rose-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>Розжарений дріт</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Sample B Card -->
+              <div id="toxic-card-B" class="toxic-sample-card p-6 rounded-2xl bg-slate-950/90 border border-slate-800 flex flex-col justify-between relative overflow-hidden transition-all duration-300">
+                <!-- Sticker Slot on Sample B -->
+                <div id="sticker-slot-B" class="sticker-slot absolute top-4 right-4 z-20 pointer-events-none"></div>
+
+                <div>
+                  <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-mono font-bold text-amber-400 text-lg">
+                        Б
+                      </div>
+                      <div>
+                        <div class="text-xs font-mono uppercase tracking-wider text-slate-400">Речовий доказ № 508-B</div>
+                        <div class="text-base font-bold text-white">Пляшка «Зразок Б»</div>
+                      </div>
+                    </div>
+                    <span id="badge-status-B" class="px-2.5 py-1 rounded-full bg-slate-900 text-slate-400 border border-slate-800 font-mono text-[11px]">
+                      Не досліджено ⚪
+                    </span>
+                  </div>
+
+                  <!-- Visual Bottle & Animated Stage -->
+                  <div class="relative w-full h-44 rounded-xl bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-800/80 flex items-center justify-center overflow-hidden mb-4 group shadow-inner">
+                    <!-- Bottle Illustration -->
+                    <div id="bottle-graphic-B" class="relative flex flex-col items-center transition-transform duration-300">
+                      <!-- Bottle Neck -->
+                      <div class="w-8 h-8 rounded-t-md bg-slate-800/80 border-t border-x border-slate-600 relative">
+                        <div class="absolute top-0 inset-x-0 h-2 bg-slate-600 rounded-t-sm"></div>
+                      </div>
+                      <!-- Bottle Body -->
+                      <div class="w-24 h-28 rounded-b-2xl bg-gradient-to-b from-slate-800/60 via-cyan-950/30 to-cyan-900/40 border border-slate-700/80 backdrop-blur-sm relative flex flex-col justify-end p-2 shadow-lg">
+                        <!-- Liquid Level -->
+                        <div class="w-full h-16 rounded-b-xl bg-gradient-to-t from-cyan-400/25 to-transparent relative">
+                          <div class="absolute inset-x-0 top-0 h-1 bg-cyan-300/40 rounded-full animate-pulse"></div>
+                        </div>
+                        <!-- Degraded Label -->
+                        <div class="absolute top-6 inset-x-2 py-1 px-1.5 rounded bg-slate-200/90 text-slate-950 font-mono text-[10px] font-bold text-center shadow border-dashed border border-slate-400">
+                          Зразок Б
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Flame Visual Stage (hidden initially) -->
+                    <div id="flame-stage-B" class="hidden absolute top-3 inset-x-0 flex flex-col items-center z-10 animate-fade-in pointer-events-none">
+                      <div id="flame-fx-B" class="w-12 h-20 rounded-full"></div>
+                      <div id="flame-label-B" class="mt-1 px-3 py-0.5 rounded-full bg-slate-950/90 border font-mono text-xs font-bold shadow-lg"></div>
+                    </div>
+
+                    <!-- Hot Copper Wire Stage (hidden initially) -->
+                    <div id="wire-stage-B" class="hidden absolute inset-0 flex flex-col items-center justify-center z-10 animate-fade-in pointer-events-none p-3 text-center">
+                      <div id="wire-fx-B" class="w-1.5 h-16 rounded-full bg-gradient-to-b from-orange-500 via-rose-500 to-amber-300 shadow-[0_0_15px_#f97316] animate-bounce"></div>
+                      <div id="wire-smoke-B" class="text-2xl mt-1">💨</div>
+                      <div id="wire-odor-B" class="mt-1 px-3 py-1 rounded-xl bg-slate-950/95 border font-mono text-xs font-bold max-w-[90%] shadow-xl"></div>
+                    </div>
+                  </div>
+
+                  <!-- Findings Log for Sample B -->
+                  <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 text-xs space-y-1.5 font-mono mb-4">
+                    <div class="flex items-center justify-between text-slate-300">
+                      <span>Колір полум'я:</span>
+                      <strong id="log-flame-B" class="text-slate-500">Не перевірено</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-slate-300">
+                      <span>Запах з гарячою міддю (CuO):</span>
+                      <strong id="log-odor-B" class="text-slate-500">Не перевірено</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Action Buttons for Sample B -->
+                <div class="grid grid-cols-2 gap-2.5">
+                  <button type="button" id="btn-flame-B" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-amber-500/40 text-amber-300 hover:text-amber-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="flame" class="w-4 h-4"></i>
+                    <span>Тест полум'ям</span>
+                  </button>
+                  <button type="button" id="btn-wire-B" class="p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-rose-500/40 text-rose-300 hover:text-rose-200 text-xs font-mono font-bold flex items-center justify-center gap-1.5 transition">
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                    <span>Розжарений дріт</span>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Verdict & Warning Sticker Drag-and-Drop Section -->
+            <div class="p-6 rounded-2xl bg-slate-950/90 border border-rose-500/40 shadow-xl space-y-5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+                <div class="flex items-center gap-2 text-rose-400 font-mono text-sm font-bold uppercase tracking-wider">
+                  <i data-lucide="alert-octagon" class="w-5 h-5"></i>
+                  <span>Фінал: Маркування токсичного фальсифікату</span>
+                </div>
+                <span class="text-xs font-mono text-amber-300">Перетягніть стікер мишкою або пальцем на пляшку з отрутою</span>
+              </div>
+
+              <!-- Draggable Poison Sticker Tray -->
+              <div id="poison-sticker-tray" class="p-5 rounded-2xl bg-slate-900/90 border-2 border-dashed border-rose-500/40 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div class="space-y-1 text-center sm:text-left">
+                  <div class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">
+                    Попереджувальна бірка-стікер (затисніть і перетягніть на пляшку А або Б):
+                  </div>
+                  <p class="text-xs text-slate-300 leading-relaxed">
+                    Візьміть стікер <strong class="text-rose-400">«ОБЕРЕЖНО, ОТРУТА!»</strong> мишкою (або пальцем на телефоні) та наклейте прямо на пляшку зі смертельним метанолом.
+                  </p>
+                </div>
+
+                <!-- The Draggable Sticker Element -->
+                <div id="poison-sticker-slot-home" class="flex-shrink-0 flex items-center justify-center min-h-[68px] min-w-[230px]">
+                  <div id="draggable-poison-sticker" class="draggable-poison-sticker toxic-poison-sticker px-4 py-2.5 rounded-xl text-center shadow-2xl border-2 border-rose-300 select-none" role="button" tabindex="0" aria-label="Стікер Обережно, отрута! Перетягніть на пляшку зі зразком">
+                    <div class="font-mono text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center justify-center gap-1.5">
+                      <span>☠️ ОБЕРЕЖНО, ОТРУТА!</span>
+                    </div>
+                    <div class="font-mono text-[11px] font-extrabold text-amber-200 mt-0.5">
+                      МЕТАНОЛ (CH₃OH) • ПЕРЕТЯГНИ МЕНЕ
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Feedback Message -->
+              <div class="pt-2 border-t border-slate-800 flex items-center justify-between gap-3">
+                <div id="toxic-feedback-msg" class="text-xs sm:text-sm text-slate-300">
+                  Дослідіть обидва зразки тестами, а потім перетягніть стікер «ОБЕРЕЖНО, ОТРУТА!» на пляшку з метанолом.
+                </div>
+              </div>
+            </div>
+
+            <!-- Final Detective Victory Banner -->
+            <div id="detective-victory-banner" class="hidden mt-6 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-amber-950/90 via-emerald-950/90 to-cyan-950/90 border-2 border-amber-400/70 shadow-[0_0_50px_rgba(245,158,11,0.3)] text-center space-y-4">
+              <div class="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-amber-400/20 border border-amber-300/50 text-amber-200 font-mono text-xs uppercase tracking-widest font-bold">
+                🏆 Справу повністю розкрито • Життя врятовано
+              </div>
+              <h4 class="text-2xl sm:text-3xl font-black text-white">
+                Вітаємо! Вам присвоєно звання «Головний Хімічний Детектив»!
+              </h4>
+              <p class="max-w-2xl mx-auto text-sm text-slate-200 leading-relaxed">
+                Ви блискуче викрили карбонову кислоту серед спиртів за групою —COOH, реконструювали трьохатомний спирт гліцерол <span class="font-mono text-emerald-300 font-bold">C₃H₅(OH)₃</span> та захистили людей від фальсифікату: розкрили пастку токсиколога, за зеленкуватим полум'ям і різким запахом формальдегіду нейтралізували смертельний метанол (<span class="font-mono text-rose-400 font-bold">CH₃OH</span>) і безпечно відокремили етанол (<span class="font-mono text-cyan-300 font-bold">C₂H₅OH</span>)!
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ======================================================================= -->
+    <!-- FOOTER (#footer)                                                        -->
+    <!-- ======================================================================= -->
+    <footer id="footer" class="mt-auto border-t border-slate-800/80 bg-slate-950/80 backdrop-blur-xl py-12 px-4 sm:px-6 lg:px-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 pb-8 border-b border-slate-800/60">
+          
+          <!-- Summary of material covered -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-cyan-400 font-bold text-base">
+              <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+              <span>Підсумок матеріалу</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Етанол (C₂H₅OH) — насичений одноатомний спирт. Його хімічні властивості зумовлені функціональною групою —OH. Здатний утворювати водневі зв'язки, що зумовлює високу t° кипіння та необмежену розчинність у воді. Реагує з натрієм, киснем та купрум(ІІ) оксидом.
+            </p>
+          </div>
+
+          <!-- Scientific notes -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2 text-amber-400 font-bold text-base">
+              <i data-lucide="book-marked" class="w-5 h-5"></i>
+              <span>Наукові примітки</span>
+            </div>
+            <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Систематична назва за IUPAC: Етанол. Застосовується в медицині як антисептик, у промисловості як розчинник, паливний компонент та сировина органічного синтезу для отримання складних естерів і оцтової кислоти.
+            </p>
+          </div>
+
+          <!-- Action & Restart Intro Button -->
+          <div class="flex flex-col items-start md:items-end justify-center">
+            <div>
+              <button id="restart-intro-btn" class="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 hover:text-cyan-300 font-semibold border border-slate-700/80 hover:border-cyan-500/50 shadow-md transition-all duration-200">
+                <i data-lucide="refresh-cw" class="w-4 h-4 text-cyan-400"></i>
+                <span>Переграти інтро</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Author / Creator Credit Card -->
+        <div class="mt-8 p-5 rounded-2xl bg-gradient-to-r from-slate-900/70 via-slate-900/40 to-cyan-950/20 border border-cyan-500/30 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div class="flex items-center gap-3.5 text-center sm:text-left">
+            <div class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shadow-[0_0_20px_rgba(6,182,212,0.2)] flex-shrink-0">
+              <i data-lucide="user-check" class="w-6 h-6"></i>
+            </div>
+            <div>
+              <div class="text-[11px] font-mono text-cyan-400 uppercase tracking-widest font-bold">
+                Автор проекту
+              </div>
+              <div class="text-base sm:text-lg font-black text-white tracking-wide">
+                Артем Каплатий
+              </div>
+              <div class="text-xs sm:text-sm text-slate-300 mt-0.5">
+                учень 11 класу <a href="https://www.poltavaschool38.pp.ua/" target="_blank" rel="noopener noreferrer" class="text-cyan-400 hover:text-cyan-300 underline underline-offset-4 decoration-cyan-500/50 hover:decoration-cyan-300 transition font-medium" title="Офіційний сайт Ліцею №38">Ліцею №38 імені Івана Павловського</a> Полтавської міської ради
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-950/80 border border-cyan-800/40 text-xs font-mono text-cyan-300/90 flex-shrink-0">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <span>Полтава • 2026</span>
+          </div>
+        </div>
+
+        <!-- Bottom Bar: Brand, Motto, Theme Switcher & Credits -->
+        <div class="mt-6 pt-5 border-t border-slate-800/50 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 font-mono gap-4">
+          <div class="flex items-center gap-2.5">
+            <i data-lucide="flask-conical" class="w-4 h-4 text-teal-400"></i>
+            <span><strong class="text-white">ORGANIC.LAB</strong> &copy; 2026 // Знання — найкраща реакція.</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span>Інтерактивна освіта</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <!-- ======================================================================= -->
+    <!-- MOBILE BOTTOM NAVIGATION BAR (Responsive < 768px)                       -->
+    <!-- ======================================================================= -->
+    <nav id="mobile-bottom-nav" class="mobile-bottom-nav md:hidden" aria-label="Мобільна нижня навігація">
+      <a href="#hero-section" data-bottom-nav="hero-section" class="mobile-tab-item active">
+        <i data-lucide="home" class="w-4 h-4"></i>
+        <span>Головна</span>
+      </a>
+      <a href="#th-1" data-bottom-nav="th-1" class="mobile-tab-item">
+        <i data-lucide="layers" class="w-4 h-4"></i>
+        <span>Теорія</span>
+      </a>
+      <a href="#th-3" data-bottom-nav="th-3" class="mobile-tab-item">
+        <i data-lucide="atom" class="w-4 h-4"></i>
+        <span>3D Модель</span>
+      </a>
+      <a href="#th-4" data-bottom-nav="th-4" class="mobile-tab-item">
+        <i data-lucide="flask-conical" class="w-4 h-4"></i>
+        <span>Реакції</span>
+      </a>
+      <a href="#detective-game-section" data-bottom-nav="detective-game-section" class="mobile-tab-item">
+        <i data-lucide="search" class="w-4 h-4"></i>
+        <span>Детектив</span>
+      </a>
+    </nav>
+
+    <!-- ======================================================================= -->
+    <!-- CHEMICAL FUNCTIONAL GROUP TOOLTIP POPOVER (#chem-tooltip-popover)       -->
+    <!-- ======================================================================= -->
+    <div id="chem-tooltip-popover" class="chem-tooltip-popover hidden" role="dialog" aria-live="polite">
+      <div class="flex items-start justify-between gap-3 mb-1.5">
+        <div class="flex items-center gap-2">
+          <span id="chem-tooltip-badge" class="px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-400/50 text-rose-300 font-mono font-extrabold text-xs">—OH</span>
+          <h4 id="chem-tooltip-title" class="text-sm font-extrabold text-white">Гідроксильна група</h4>
+        </div>
+        <button type="button" id="chem-tooltip-close" class="text-slate-400 hover:text-white p-0.5 rounded-md transition" aria-label="Закрити підказку">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+      <p id="chem-tooltip-body" class="text-xs text-slate-200 leading-relaxed mb-2"></p>
+      <div id="chem-tooltip-meta" class="text-[11px] font-mono text-teal-300 bg-slate-950/80 px-2.5 py-1.5 rounded-lg border border-teal-500/30"></div>
+    </div>
+
+  </div>
+
+  <!-- Application Logic & Lucide Icons initialization -->
+  <script src="app.js"></script>
+  <script src="theory.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
